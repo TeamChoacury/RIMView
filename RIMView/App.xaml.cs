@@ -14,7 +14,7 @@ namespace RIMView
     {
         private void Application_Startup(object sender, StartupEventArgs e)
         {
-            if(e.Args.Length != 1)
+            if(e.Args.Length != 1 && e.Args.Length != 2)
             {
                 MessageBox.Show("Failed to load RIM file: No argument provided", "RIMView");
                 Environment.Exit(-1);
@@ -31,6 +31,15 @@ namespace RIMView
 
             string location = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "RIMView", "Temp", new Guid().ToString() + ".bmp");
 
+            bool debug = false;
+            if(e.Args.Length == 2)
+            {
+                if (e.Args[1] == "debug")
+                {
+                    debug = true;
+                }
+            }
+
             try
             {
                 Process process = new Process()
@@ -38,13 +47,17 @@ namespace RIMView
                     StartInfo = new ProcessStartInfo()
                     {
                         FileName = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "RIMTils", "RIMTils.exe"),
-                        Arguments = $"convert -m ToBMP -f \"{e.Args[0]}\" -t \"{location}\"",
-                        CreateNoWindow = true
+                        Arguments = $"convert -m ToBMP -f \"{e.Args[0]}\" -t \"{location}\" {(debug ? "-d" : "")}",
+                        CreateNoWindow = true,
+                        RedirectStandardOutput = true
                     }
                 };
 
                 process.Start();
                 process.WaitForExit();
+
+                string log = process.StandardOutput.ReadToEnd();
+                File.WriteAllText(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "RIMView", "Temp", "log.txt"), log);
 
                 mainWindow.SetLoading(false);
                 mainWindow.SetImage(location);
